@@ -162,6 +162,23 @@ void legal_moves_rook(GameState gs, Coordinate coord,
   }
 }
 
+void legal_moves_king(GameState gs, Coordinate coord,
+                      std::vector<Move> &moves) {
+  int offsets[8][2] = {{0, 1}, {0, -1}, {1, 0},  {-1, 0},
+                       {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+  for (auto offset : offsets) {
+    Coordinate c = {coord.x() + offset[0], coord.y() + offset[1]};
+    if (!c.is_in_bounds()) {
+      continue;
+    }
+    auto pc = gs.piece_at(c);
+    if (pc) {
+      continue;
+    }
+    moves.push_back({coord, c});
+  }
+}
+
 std::vector<Move> GameState::legal_moves() {
   std::vector<Move> moves;
 
@@ -185,8 +202,11 @@ std::vector<Move> GameState::legal_moves() {
         legal_moves_rook(*this, {x, y}, moves);
         break;
       case PieceKind::Queen:
+        legal_moves_rook(*this, {x, y}, moves);
+        legal_moves_bishop(*this, {x, y}, moves);
         break;
       case PieceKind::King:
+        legal_moves_king(*this, {x, y}, moves);
         break;
       }
     }
