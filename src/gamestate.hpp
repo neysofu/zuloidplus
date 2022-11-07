@@ -17,6 +17,12 @@ public:
 
   Coordinate(int x, int y) { i = (x << 3) | y; }
 
+  Coordinate operator+(Coordinate &c) { return {x() + c.x(), y() + c.y()}; }
+
+  bool is_in_bounds() { return i < 64; }
+
+  std::string to_string();
+
   uint8_t x() { return i >> 3; }
   u_int8_t y() { return i & 0x7; }
 };
@@ -25,6 +31,8 @@ class Move {
 public:
   Coordinate from;
   Coordinate to;
+
+  std::string to_string();
 };
 
 enum class CastlingSide {

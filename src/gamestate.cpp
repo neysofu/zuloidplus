@@ -61,7 +61,6 @@ char piece_to_ascii_char(Piece pc) {
 
 std::string GameState::to_fen() {
   auto s = std::string();
-  // TODO: pieces
 
   for (int y = 7; y >= 0; y--) {
     int empty_columns_count = 0;
@@ -107,16 +106,90 @@ void GameState::set_piece_at(const Coordinate coord, const Piece pc) {
   pieces[coord.i] = pc;
 }
 
+void legal_moves_pawn(GameState gs, Coordinate coord,
+                      std::vector<Move> &moves) {}
+
+void legal_moves_knight(GameState gs, Coordinate coord,
+                        std::vector<Move> &moves) {
+  int offsets[8][2] = {{2, 1},   {1, 2},   {-1, 2}, {-2, 1},
+                       {-2, -1}, {-1, -2}, {1, -2}, {2, -1}};
+  for (auto offset : offsets) {
+    Coordinate c = {coord.x() + offset[0], coord.y() + offset[1]};
+    if (!c.is_in_bounds()) {
+      continue;
+    }
+    auto pc = gs.piece_at(c);
+    if (pc) {
+      continue;
+    }
+    moves.push_back({coord, c});
+  }
+}
+
+void legal_moves_bishop(GameState gs, Coordinate coord,
+                        std::vector<Move> &moves) {
+  int offsets[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
+  for (auto offset : offsets) {
+    for (int i = 1; i < 8; i++) {
+      Coordinate c = {coord.x() + offset[0] * i, coord.y() + offset[1] * i};
+      if (!c.is_in_bounds()) {
+        break;
+      }
+      auto pc = gs.piece_at(c);
+      if (pc) {
+        break;
+      }
+      moves.push_back({coord, c});
+    }
+  }
+}
+
+void legal_moves_rook(GameState gs, Coordinate coord,
+                      std::vector<Move> &moves) {
+  int offsets[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+  for (auto offset : offsets) {
+    for (int i = 1; i < 8; i++) {
+      Coordinate c = {coord.x() + offset[0] * 1, coord.y() + offset[1] * i};
+      if (!c.is_in_bounds()) {
+        break;
+      }
+      auto pc = gs.piece_at(c);
+      if (pc) {
+        break;
+      }
+      moves.push_back({coord, c});
+    }
+  }
+}
+
 std::vector<Move> GameState::legal_moves() {
   std::vector<Move> moves;
 
-  for (int i = 0; i < 64; i++) {
-    // TODO: generate moves.
-    // Piece pc = piece_at({i / 8, i % 8});
-    // switch (pc.kind) {
-    // case PieceKind::Rook:
-    //  break;
-    //}
+  for (int x = 0; x < 8; x++) {
+    for (int y = 0; y < 8; y++) {
+      auto pc = piece_at({x, y});
+      if (!pc || pc.value().color != turn) {
+        continue;
+      }
+      switch (pc.value().kind) {
+      case PieceKind::Pawn:
+        legal_moves_pawn(*this, {x, y}, moves);
+        break;
+      case PieceKind::Knight:
+        legal_moves_knight(*this, {x, y}, moves);
+        break;
+      case PieceKind::Bishop:
+        legal_moves_bishop(*this, {x, y}, moves);
+        break;
+      case PieceKind::Rook:
+        legal_moves_rook(*this, {x, y}, moves);
+        break;
+      case PieceKind::Queen:
+        break;
+      case PieceKind::King:
+        break;
+      }
+    }
   }
 
   return moves;
@@ -153,3 +226,9 @@ std::string GameState::to_ascii_art() {
 
   return s;
 }
+
+std::string Coordinate::to_string() {
+  return std::string(1, 'a' + x()) + std::to_string(y() + 1);
+}
+
+std::string Move::to_string() { return from.to_string() + to.to_string(); }

@@ -1,4 +1,5 @@
 #include <boost/algorithm/string.hpp>
+#include <boost/interprocess/detail/os_thread_functions.hpp>
 #include <gamestate.hpp>
 #include <iostream>
 #include <vector>
@@ -19,8 +20,11 @@ private:
 
 int main(void) {
   std::cout << "# Welcome to ZuloidPlus." << std::endl;
+  std::cout << "# PID: "
+            << boost::interprocess::ipcdetail::get_current_process_id()
+            << std::endl;
 
-  GameState game_state;
+  GameState game_state = GameState();
 
   for (std::string line; std::getline(std::cin, line);) {
     std::vector<std::string> tokens;
@@ -35,6 +39,7 @@ int main(void) {
     } else if (tokens[0] == "isready") {
       std::cout << "readyok" << std::endl;
     } else if (tokens[0] == "quit") {
+      std::cout << "Farewell, my friend." << std::endl;
       break;
     } else if (tokens[0] == "d") {
       std::cout << game_state.to_ascii_art() << std::endl;
@@ -42,14 +47,14 @@ int main(void) {
       std::cout << game_state.to_fen() << std::endl;
     } else if (tokens[0] == "debug") {
       if (tokens.size() != 2) {
-        std::cerr << "Invalid debug command." << std::endl;
+        std::cerr << "# Invalid debug command." << std::endl;
         continue;
       } else if (tokens[1] == "on") {
-        std::cout << "debug on" << std::endl;
+        std::cout << "# debug on" << std::endl;
       } else if (tokens[1] == "off") {
-        std::cout << "debug off" << std::endl;
+        std::cout << "# debug off" << std::endl;
       } else {
-        std::cout << "debug ?" << std::endl;
+        std::cerr << "# Invalid debug value" << std::endl;
       }
     } else if (tokens[0] == "position") {
       if (tokens[1] == "startpos") {
@@ -57,6 +62,16 @@ int main(void) {
       } else if (tokens[1] == "fen") {
         // TODO
       }
+    } else if (tokens[0] == "go") {
+      if (tokens[1] == "perft") {
+        auto moves = game_state.legal_moves();
+        std::cout << moves.size() << std::endl;
+        for (auto move : moves) {
+          std::cout << move.to_string() << std::endl;
+        }
+      }
+    } else {
+      std::cerr << "# Unknown command: " << tokens[0] << std::endl;
     }
   }
 
