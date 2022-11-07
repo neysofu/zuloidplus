@@ -37,8 +37,9 @@ int main(void) {
     } else if (tokens[0] == "quit") {
       break;
     } else if (tokens[0] == "d") {
-      auto board = game_state.to_ascii_art();
-      std::cout << board << std::endl;
+      std::cout << game_state.to_ascii_art() << std::endl;
+    } else if (tokens[0] == "fen") {
+      std::cout << game_state.to_fen() << std::endl;
     } else if (tokens[0] == "debug") {
       if (tokens.size() != 2) {
         std::cerr << "Invalid debug command." << std::endl;

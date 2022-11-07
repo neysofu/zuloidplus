@@ -7,14 +7,18 @@
 
 typedef uint64_t Bitboard;
 
+/**
+ * @brief Provides a mapping between XY coordinates and integers.
+ *
+ */
 class Coordinate {
 public:
-  uint8_t x;
-  uint8_t y;
+  uint8_t i;
 
-  Coordinate(int x, int y) : x(x), y(y) {}
+  Coordinate(int x, int y) { i = (x << 3) | y; }
 
-  uint8_t to_index() const { return x * 8 + y; }
+  uint8_t x() { return i >> 3; }
+  u_int8_t y() { return i & 0x7; }
 };
 
 class Move {
