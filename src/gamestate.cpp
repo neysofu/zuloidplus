@@ -107,7 +107,9 @@ void GameState::set_piece_at(const Coordinate coord, const Piece pc) {
 }
 
 void legal_moves_pawn(GameState gs, Coordinate coord,
-                      std::vector<Move> &moves) {}
+                      std::vector<Move> &moves) {
+  // TODO
+}
 
 void legal_moves_knight(GameState gs, Coordinate coord,
                         std::vector<Move> &moves) {
