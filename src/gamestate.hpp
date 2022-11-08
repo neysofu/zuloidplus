@@ -74,6 +74,8 @@ public:
 
   std::vector<Move> legal_moves();
 
+  Color whose_turn() { return turn; }
+
 private:
   Color turn;
   std::optional<Piece> pieces[64];

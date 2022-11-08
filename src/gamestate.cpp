@@ -108,7 +108,33 @@ void GameState::set_piece_at(const Coordinate coord, const Piece pc) {
 
 void legal_moves_pawn(GameState gs, Coordinate coord,
                       std::vector<Move> &moves) {
-  // TODO
+  Coordinate offset = {0, 1};
+  if (gs.whose_turn() == Color::Black) {
+    offset = {0, -1};
+  }
+
+  auto target = coord + offset;
+  if (gs.piece_at(target)) {
+    return;
+  }
+  moves.push_back({coord, target});
+
+  Coordinate capture_offset[2] = {{1, 1}, {-1, 1}};
+  if (gs.whose_turn() == Color::Black) {
+    capture_offset[0] = {1, -1};
+    capture_offset[1] = {-1, -1};
+  }
+
+  for (auto &offset : capture_offset) {
+    auto target = coord + offset;
+    if (!target.is_in_bounds()) {
+      continue;
+    }
+    auto pc = gs.piece_at(target);
+    if (pc && pc->color != gs.whose_turn()) {
+      moves.push_back({coord, target});
+    }
+  }
 }
 
 void legal_moves_knight(GameState gs, Coordinate coord,
