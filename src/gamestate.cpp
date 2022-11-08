@@ -108,17 +108,34 @@ void GameState::set_piece_at(const Coordinate coord, const Piece pc) {
 
 void legal_moves_pawn(GameState gs, Coordinate coord,
                       std::vector<Move> &moves) {
+  // Single steps
   Coordinate offset = {0, 1};
   if (gs.whose_turn() == Color::Black) {
     offset = {0, -1};
   }
 
   auto target = coord + offset;
-  if (gs.piece_at(target)) {
-    return;
+  if (!gs.piece_at(target)) {
+    moves.push_back({coord, target});
   }
-  moves.push_back({coord, target});
 
+  // Double steps
+  if ((gs.whose_turn() == Color::White && coord.y() == 1) ||
+      (gs.whose_turn() == Color::Black && coord.y() == 6)) {
+
+    Coordinate offset = {0, 2};
+    if (gs.whose_turn() == Color::Black) {
+      offset = {0, -2};
+    }
+
+    // TODO: check if there is a piece in between
+    auto target = coord + offset;
+    if (!gs.piece_at(target)) {
+      moves.push_back({coord, target});
+    }
+  }
+
+  // Captures
   Coordinate capture_offset[2] = {{1, 1}, {-1, 1}};
   if (gs.whose_turn() == Color::Black) {
     capture_offset[0] = {1, -1};
@@ -147,7 +164,7 @@ void legal_moves_knight(GameState gs, Coordinate coord,
       continue;
     }
     auto pc = gs.piece_at(c);
-    if (pc) {
+    if (pc && pc.value().color == gs.whose_turn()) {
       continue;
     }
     moves.push_back({coord, c});
@@ -164,7 +181,7 @@ void legal_moves_bishop(GameState gs, Coordinate coord,
         break;
       }
       auto pc = gs.piece_at(c);
-      if (pc) {
+      if (pc && pc.value().color == gs.whose_turn()) {
         break;
       }
       moves.push_back({coord, c});
@@ -182,7 +199,7 @@ void legal_moves_rook(GameState gs, Coordinate coord,
         break;
       }
       auto pc = gs.piece_at(c);
-      if (pc) {
+      if (pc && pc.value().color == gs.whose_turn()) {
         break;
       }
       moves.push_back({coord, c});
@@ -200,7 +217,7 @@ void legal_moves_king(GameState gs, Coordinate coord,
       continue;
     }
     auto pc = gs.piece_at(c);
-    if (pc) {
+    if (pc && pc.value().color == gs.whose_turn()) {
       continue;
     }
     moves.push_back({coord, c});
