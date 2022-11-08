@@ -1,3 +1,4 @@
+#include <boost/algorithm/string.hpp>
 #include <cstdint>
 #include <gamestate.hpp>
 #include <optional>
@@ -5,30 +6,33 @@
 #include <vector>
 
 GameState::GameState() {
-  set_piece_at({0, 0}, {Color::White, PieceKind::Rook});
-  set_piece_at({1, 0}, {Color::White, PieceKind::Knight});
-  set_piece_at({2, 0}, {Color::White, PieceKind::Bishop});
-  set_piece_at({3, 0}, {Color::White, PieceKind::Queen});
-  set_piece_at({4, 0}, {Color::White, PieceKind::King});
-  set_piece_at({5, 0}, {Color::White, PieceKind::Bishop});
-  set_piece_at({6, 0}, {Color::White, PieceKind::Knight});
-  set_piece_at({7, 0}, {Color::White, PieceKind::Rook});
+  turn = Color::White;
+  castling_rights = CastlingRights();
+
+  set_piece_at({0, 0}, Piece(Color::White, PieceKind::Rook));
+  set_piece_at({1, 0}, Piece(Color::White, PieceKind::Knight));
+  set_piece_at({2, 0}, Piece(Color::White, PieceKind::Bishop));
+  set_piece_at({3, 0}, Piece(Color::White, PieceKind::Queen));
+  set_piece_at({4, 0}, Piece(Color::White, PieceKind::King));
+  set_piece_at({5, 0}, Piece(Color::White, PieceKind::Bishop));
+  set_piece_at({6, 0}, Piece(Color::White, PieceKind::Knight));
+  set_piece_at({7, 0}, Piece(Color::White, PieceKind::Rook));
 
   for (int i = 0; i < 8; i++) {
-    set_piece_at({i, 1}, {Color::White, PieceKind::Pawn});
+    set_piece_at({i, 1}, Piece(Color::White, PieceKind::Pawn));
   }
 
-  set_piece_at({0, 7}, {Color::Black, PieceKind::Rook});
-  set_piece_at({1, 7}, {Color::Black, PieceKind::Knight});
-  set_piece_at({2, 7}, {Color::Black, PieceKind::Bishop});
-  set_piece_at({3, 7}, {Color::Black, PieceKind::Queen});
-  set_piece_at({4, 7}, {Color::Black, PieceKind::King});
-  set_piece_at({5, 7}, {Color::Black, PieceKind::Bishop});
-  set_piece_at({6, 7}, {Color::Black, PieceKind::Knight});
-  set_piece_at({7, 7}, {Color::Black, PieceKind::Rook});
+  set_piece_at({0, 7}, Piece(Color::Black, PieceKind::Rook));
+  set_piece_at({1, 7}, Piece(Color::Black, PieceKind::Knight));
+  set_piece_at({2, 7}, Piece(Color::Black, PieceKind::Bishop));
+  set_piece_at({3, 7}, Piece(Color::Black, PieceKind::Queen));
+  set_piece_at({4, 7}, Piece(Color::Black, PieceKind::King));
+  set_piece_at({5, 7}, Piece(Color::Black, PieceKind::Bishop));
+  set_piece_at({6, 7}, Piece(Color::Black, PieceKind::Knight));
+  set_piece_at({7, 7}, Piece(Color::Black, PieceKind::Rook));
 
   for (int i = 0; i < 8; i++) {
-    set_piece_at({i, 6}, {Color::Black, PieceKind::Pawn});
+    set_piece_at({i, 6}, Piece(Color::Black, PieceKind::Pawn));
   }
 }
 
@@ -99,11 +103,12 @@ std::string GameState::to_fen() {
 }
 
 std::optional<Piece> GameState::piece_at(const Coordinate &c) {
-  return pieces[c.i];
+  return pieces[c.index()];
 }
 
-void GameState::set_piece_at(const Coordinate coord, const Piece pc) {
-  pieces[coord.i] = pc;
+void GameState::set_piece_at(const Coordinate coord,
+                             const std::optional<Piece> pc) {
+  pieces[coord.index()] = pc;
 }
 
 void legal_moves_pawn(GameState gs, Coordinate coord,
@@ -260,6 +265,12 @@ std::vector<Move> GameState::legal_moves() {
   return moves;
 }
 
+Color GameState::whose_turn() { return turn; }
+
+void GameState::set_turn(Color c) { turn = c; }
+
+CastlingRights &GameState::get_castling_rights() { return castling_rights; }
+
 std::string GameState::to_ascii_art() {
   std::string s = "";
   const std::string number_coordinates = "    a b c d e f g h\n";
@@ -292,8 +303,116 @@ std::string GameState::to_ascii_art() {
   return s;
 }
 
-std::string Coordinate::to_string() {
+std::string Coordinate::to_string() const {
   return std::string(1, 'a' + x()) + std::to_string(y() + 1);
 }
 
 std::string Move::to_string() { return from.to_string() + to.to_string(); }
+
+std::optional<Piece> char_to_piece(char c) {
+  PieceKind kind;
+  switch (c) {
+  case 'P':
+    kind = PieceKind::Pawn;
+    break;
+  case 'N':
+    kind = PieceKind::Knight;
+    break;
+  case 'B':
+    kind = PieceKind::Bishop;
+    break;
+  case 'R':
+    kind = PieceKind::Rook;
+    break;
+  case 'Q':
+    kind = PieceKind::Queen;
+    break;
+  case 'K':
+    kind = PieceKind::King;
+    break;
+  case 'p':
+    kind = PieceKind::King;
+    break;
+  default:
+    return std::nullopt;
+  }
+  if (islower(c)) {
+    return Piece(Color::Black, kind);
+  } else {
+    return Piece(Color::White, kind);
+  }
+}
+
+class ParsedFen {
+  ParsedFen(std::string input) {
+    GameState gs = GameState();
+
+    std::vector<std::string> tokens;
+    boost::split(tokens, input, boost::is_space());
+
+    auto err = std::invalid_argument("Invalid FEN string");
+
+    if (tokens.size() != 6) {
+      throw err;
+    }
+
+    auto pieces = tokens[0];
+    for (int i = 0; i < 8; i++) {
+      if (std::isalpha(pieces[i])) {
+        auto pc = char_to_piece(pieces[i]);
+        gs.set_piece_at({i, 1}, pc.value());
+      } else if (std::isdigit(pieces[i])) {
+        int n = pieces[i] - '0';
+        for (int j = 0; j < n; j++) {
+          gs.set_piece_at({i + j, 1}, std::nullopt);
+        }
+        i += n - 1;
+      } else if (pieces[i] == '/') {
+        continue;
+      } else {
+        throw err;
+      }
+    }
+
+    auto turn_indicator = tokens[1];
+    if (turn_indicator == "w") {
+      turn = Color::White;
+    } else if (turn_indicator == "b") {
+      turn = Color::Black;
+    } else {
+      throw err;
+    }
+
+    for (auto c : tokens[2]) {
+      if (c == '-') {
+        castling_rights.set(Color::White, CastlingSide::King, false);
+        castling_rights.set(Color::White, CastlingSide::Queen, false);
+        castling_rights.set(Color::Black, CastlingSide::King, false);
+        castling_rights.set(Color::Black, CastlingSide::Queen, false);
+        break;
+      }
+      if (c == 'K') {
+        castling_rights.set(Color::White, CastlingSide::King, true);
+      } else if (c == 'Q') {
+        castling_rights.set(Color::White, CastlingSide::Queen, true);
+      } else if (c == 'k') {
+        castling_rights.set(Color::Black, CastlingSide::King, true);
+      } else if (c == 'q') {
+        castling_rights.set(Color::Black, CastlingSide::Queen, true);
+      } else {
+        throw err;
+      }
+    }
+
+    halfmove_clock = std::stoi(tokens[4]);
+    fullmove_count = std::stoi(tokens[5]);
+  }
+
+public:
+  std::optional<Piece> pieces[8][8];
+  Color turn;
+  CastlingRights castling_rights;
+  std::optional<Coordinate> en_passant_target;
+  uint halfmove_clock;
+  uint fullmove_count;
+};

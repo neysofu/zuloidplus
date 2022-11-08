@@ -1,0 +1,24 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  compile:
+    name: Compile in debug mode
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - uses: BSFishy/meson-build@v1.0.3
+        with:
+          action: test
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: DoozyX/clang-format-lint-action@v0.14
